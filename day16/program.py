@@ -71,6 +71,16 @@ def map_travelcosts(valves, poi):
     return tc
 
 
+from collections import namedtuple
+from dataclasses import dataclass
+
+@dataclass
+class Guess:
+    path: tuple[str, ...]
+    gain: int = 0
+    def __eq__(self, other):
+        return cmp(self.gain, other.gain)
+
 @timed_function
 def day16a(filepath):
     # valve-map, points of interest
@@ -83,22 +93,23 @@ def day16a(filepath):
     def map_estimations(path, t_rem, closed):
         gain = t_rem * rate_map.get(path[-1], 0)
 
-        maxGain = gain
-        maxChoice = path
+        maxGain = 0
+        secondBest = 0
         for c in closed:
             open_cost = tc_map[key(path[-1], c)] + 1
             if open_cost >= t_rem:
                 continue
-            gain, choice = map_estimations((*path, c), t_rem - open_cost, closed.difference({c}))
-            if gain > maxGain:
-                maxGain = gain
-                maxChoice = (*path, c)
-                
-        return maxGain, maxChoice
+            gains = map_estimations((*path, c), t_rem - open_cost, closed.difference({c}))
+            for g in gains:
+                if g > maxGain:
+                    maxGain = g
+                elif g > secondBest:
+                    secondBest = g
 
-    max, path = map_estimations(('AA',), 30, frozenset(poi))
-    print(path)
-    return max
+        return gain + maxGain, gain + secondBest
+
+    mx, second = map_estimations(('AA',), 30, frozenset(poi))
+    return mx
 
 if __name__ == "__main__":
     ret = day16a('example.txt')
@@ -106,4 +117,4 @@ if __name__ == "__main__":
     print(f'Example: {ret}')
 
     ret = day16a('input.txt')
-    print(f'Part1: {ret[0]}')
+    print(f'Part1: {ret}')

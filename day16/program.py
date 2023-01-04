@@ -59,12 +59,6 @@ def shortestpath(valves, s, end):
 
         visited.add(node)
 
-def richestpath(travelcost, src, closed):
-    for dst in sorted(poi, key=lambda x: -weight[x]):
-        if dst not in closed:
-            yield dst,travelcost[key(dst, src)],weight[dst]
-
-
 @timed_function
 def map_travelcosts(valves, poi):
     tc = {}
@@ -105,20 +99,6 @@ def day16a(filepath):
     max, path = map_estimations(('AA',), 30, frozenset(poi))
     print(path)
     return max
-
-    #profits = {}
-    #todo = [(0, 'AA', frozenset(), 1)]
-    #while todo:
-    #    cost, node, closed, timer = heappop(todo)
-    #    print(f'-> [c:{cost},n:{node},p:{closed},t:{timer}]')
-    #    
-    #    for lead, c, rate in richestpath(tc, node, closed):
-    #        estimate = - (30 - timer - c) * rate
-    #        if estimate < profits.get(lead, 0):
-    #            profits[lead] = estimate
-    #            heappush(todo, (estimate, lead, closed.union({lead}), timer+1+c))
-    return 1
-
 
 if __name__ == "__main__":
     ret = day16a('example.txt')

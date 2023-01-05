@@ -74,47 +74,71 @@ def map_travelcosts(valves, poi):
 from collections import namedtuple
 from dataclasses import dataclass
 
-@dataclass
-class Guess:
-    path: tuple[str, ...]
-    gain: int = 0
-    def __eq__(self, other):
-        return cmp(self.gain, other.gain)
+Qitem = namedtuple('qitem', ('pri', 'path', 'closed', 't_rem', 'flow', 'flowtot'))
 
 @timed_function
 def day16a(filepath):
     # valve-map, points of interest
     valves, poi = parse(filepath)
 
-    tc_map = map_travelcosts(valves, poi)
-    rate_map = {x: valves[x]['rate'] for x in poi}
+    T = map_travelcosts(valves, poi)
+    R = {x: valves[x]['rate'] for x in poi}
 
-    # write recursive function to map estimations
-    def map_estimations(path, t_rem, closed):
-        gain = t_rem * rate_map.get(path[-1], 0)
+    max_flow = sum(v for v in R.values())
+    todo = [Qitem(0, ('AA',), frozenset(poi), 30, 0, 0)]
+    best = 0
 
-        maxGain = 0
-        secondBest = 0
-        for c in closed:
-            open_cost = tc_map[key(path[-1], c)] + 1
-            if open_cost >= t_rem:
-                continue
-            gains = map_estimations((*path, c), t_rem - open_cost, closed.difference({c}))
-            for g in gains:
-                if g > maxGain:
-                    maxGain = g
-                elif g > secondBest:
-                    secondBest = g
+    # flow / rate / flowrate
+    # escaped / total / released
+    while todo:
+        pri, path, closed, t_rem, flow, flowtot = heappop(todo)
+        depth = len(path)
+        if depth == 2 or (depth == 3 and path[:2] == ('AA', 'IY')):
+            print(f'trying {path}')
 
-        return gain + maxGain, gain + secondBest
+        if t_rem == 0: # t_rem
+            if flowtot > best:
+                print(f'amount reachable:\n{flowtot} via {path}')
+                best = flowtot
+            continue
 
-    mx, second = map_estimations(('AA',), 30, frozenset(poi))
-    return mx
+        # filter out unreachable valves
+        possible = [y for y in closed if T[key(path[-1],y)]+1 < t_rem]
+        if not len(possible):
+            end = flowtot + (t_rem*flow)
+            if end > best:
+                print(f'cannot move; remaining {t_rem}, flow={flow}, flowtot={flowtot}')
+                print(f'amount reachable:\n{end} via {path}')
+                best = end
+            continue
+
+        # sort best options:
+        sort = lambda x: -(t_rem - 1 - T[key(path[-1],x)])
+        for v in sorted(possible, key=sort):
+            oc = 1 + T[key(path[-1],v)]
+            # prio was:
+            # max_flow-R[v], # prio
+            # -(t_rem-1-T[key(path[-1],v)])*R[v], # prio
+            q = Qitem(
+                -(t_rem - oc),
+                (*path, v),    # path
+                closed.difference({v}),            # new closed
+                t_rem - oc,    # t_remaining
+                flow + R[v], # new flow
+                flowtot + (oc*flow) # total flow
+                )
+            if depth == 1:
+                print(f"queueing {q}")
+            heappush(todo, q)
+
+    return best
 
 if __name__ == "__main__":
-    ret = day16a('example.txt')
+    #ret = day16a('example.txt')
     #assert(ret == 1651)
-    print(f'Example: {ret}')
+    #print(f'Example: {ret}')
 
+    print('#correct: IY,XF,IU,JF,JG,QH,SZ,BF')
     ret = day16a('input.txt')
+    #assert(ret == 1947)
     print(f'Part1: {ret}')

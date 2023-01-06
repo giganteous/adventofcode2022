@@ -84,12 +84,10 @@ def day16a(filepath):
     T = map_travelcosts(valves, poi)
     R = {x: valves[x]['rate'] for x in poi}
 
-    max_flow = sum(v for v in R.values())
     todo = [Qitem(0, ('AA',), frozenset(poi), 30, 0, 0)]
     best = 0
 
-    # flow / rate / flowrate
-    # escaped / total / released
+    positions = []
     while todo:
         pri, path, closed, t_rem, flow, flowtot = heappop(todo)
         depth = len(path)
@@ -116,9 +114,6 @@ def day16a(filepath):
         sort = lambda x: -(t_rem - 1 - T[key(path[-1],x)])
         for v in sorted(possible, key=sort):
             oc = 1 + T[key(path[-1],v)]
-            # prio was:
-            # max_flow-R[v], # prio
-            # -(t_rem-1-T[key(path[-1],v)])*R[v], # prio
             q = Qitem(
                 -(t_rem - oc),
                 (*path, v),    # path
